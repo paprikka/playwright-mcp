@@ -14,43 +14,46 @@
  * limitations under the License.
  */
 
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
+import fs from "fs";
+import os from "os";
+import path from "path";
 
-import { program } from 'commander';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { program } from "commander";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
-import { createServer } from './index';
+import { createServer } from "./index";
 
-import type { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import type { LaunchOptions } from 'playwright';
+import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import type { LaunchOptions } from "playwright";
 
-const packageJSON = require('../package.json');
+const packageJSON = require("../package.json");
 
 program
-    .version('Version ' + packageJSON.version)
-    .name(packageJSON.name)
-    .option('--headless', 'Run browser in headless mode, headed by default')
-    .option('--user-data-dir <path>', 'Path to the user data directory')
-    .option('--vision', 'Run server that uses screenshots (Aria snapshots are used by default)')
-    .action(async options => {
-      const launchOptions: LaunchOptions = {
-        headless: !!options.headless,
-        channel: 'chrome',
-      };
-      const server = createServer({
-        userDataDir: options.userDataDir ?? await userDataDir(),
-        launchOptions,
-      });
-      setupExitWatchdog(server);
-
-      const transport = new StdioServerTransport();
-      await server.connect(transport);
+  .version("Version " + packageJSON.version)
+  .name(packageJSON.name)
+  .option("--headless", "Run browser in headless mode, headed by default")
+  .option("--user-data-dir <path>", "Path to the user data directory")
+  .option(
+    "--vision",
+    "Run server that uses screenshots (Aria snapshots are used by default)"
+  )
+  .action(async (options) => {
+    const launchOptions: LaunchOptions = {
+      headless: !!options.headless,
+      channel: "chromium",
+    };
+    const server = createServer({
+      userDataDir: options.userDataDir ?? (await userDataDir()),
+      launchOptions,
     });
+    setupExitWatchdog(server);
+
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+  });
 
 function setupExitWatchdog(server: Server) {
-  process.stdin.on('close', async () => {
+  process.stdin.on("close", async () => {
     setTimeout(() => process.exit(0), 15000);
     await server.close();
     process.exit(0);
@@ -61,15 +64,20 @@ program.parse(process.argv);
 
 async function userDataDir() {
   let cacheDirectory: string;
-  if (process.platform === 'linux')
-    cacheDirectory = process.env.XDG_CACHE_HOME || path.join(os.homedir(), '.cache');
-  else if (process.platform === 'darwin')
-    cacheDirectory = path.join(os.homedir(), 'Library', 'Caches');
-  else if (process.platform === 'win32')
-    cacheDirectory = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
-  else
-    throw new Error('Unsupported platform: ' + process.platform);
-  const result = path.join(cacheDirectory, 'ms-playwright', 'mcp-chrome-profile');
+  if (process.platform === "linux")
+    cacheDirectory =
+      process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache");
+  else if (process.platform === "darwin")
+    cacheDirectory = path.join(os.homedir(), "Library", "Caches");
+  else if (process.platform === "win32")
+    cacheDirectory =
+      process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
+  else throw new Error("Unsupported platform: " + process.platform);
+  const result = path.join(
+    cacheDirectory,
+    "ms-playwright",
+    "mcp-chrome-profile"
+  );
   await fs.promises.mkdir(result, { recursive: true });
   return result;
 }
